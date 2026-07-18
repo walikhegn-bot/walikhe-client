@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Walikhé Pro — Espace Professionnel</title>
+<link rel="manifest" href="manifest-pro.json">
+<meta name="theme-color" content="#182548">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Walikhé Pro">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#12192E; --ink-soft:#2B3350; --navy:#182548; --amber:#F2A33C; --amber-dark:#D6871F;
+  --success:#2E8B63; --danger:#C4573B; --bg:#F6F4EF; --card:#FFFFFF; --line:#E7E3D8; --muted:#6E7280;
+  --radius:16px; --radius-sm:10px; --shadow:0 8px 24px rgba(18,25,46,0.08);
+  --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{font-family:var(--font-body); background:var(--ink); color:var(--ink); display:flex; justify-content:center; overflow:hidden;}
+#app{width:100%; max-width:480px; height:100vh; height:100dvh; background:var(--bg); position:relative; overflow:hidden; box-shadow:0 0 60px rgba(0,0,0,0.4);}
+.screen{position:absolute; inset:0; display:none; flex-direction:column; overflow-y:auto; animation:fade .25s ease;}
+.screen.active{display:flex;}
+@keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+.topbar{padding:20px 20px 14px; display:flex; align-items:center; justify-content:space-between; background:var(--bg); position:sticky; top:0; z-index:5;}
+.topbar h1{font-family:var(--font-display); font-size:20px; font-weight:700; color:var(--ink);}
+.topbar .sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.back-btn{width:36px; height:36px; border-radius:50%; background:var(--card); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;}
+.content{padding:0 20px 24px; flex:1;}
+
+.bottom-nav{position:sticky; bottom:0; left:0; right:0; height:74px; background:var(--card); border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around; padding-bottom:8px; z-index:10; flex-shrink:0;}
+.nav-item{display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10px; color:var(--muted); font-weight:600; cursor:pointer; width:56px; text-align:center;}
+.nav-item .ic{font-size:20px;}
+.nav-item.active{color:var(--navy);}
+.nav-item .dot{position:relative;}
+.nav-item .badge-dot{position:absolute; top:-2px; right:10px; width:8px; height:8px; border-radius:50%; background:var(--danger);}
+
+.btn{border:none; border-radius:999px; padding:14px 20px; font-family:var(--font-body); font-weight:600; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .12s ease;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--amber); color:var(--ink);}
+.btn-success{background:var(--success); color:#fff;}
+.btn-danger{background:transparent; color:var(--danger); border:1.5px solid var(--danger);}
+.btn-ghost{background:var(--line); color:var(--ink);}
+.btn-dark{background:var(--navy); color:#fff;}
+.btn-block{width:100%;}
+.btn-sm{padding:10px 14px; font-size:12.5px;}
+
+/* KPI grid */
+.kpi-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0 22px;}
+.kpi-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);}
+.kpi-card .num{font-family:var(--font-mono); font-weight:600; font-size:24px; color:var(--navy);}
+.kpi-card .lbl{font-size:11.5px; color:var(--muted); margin-top:4px; font-weight:600;}
+.kpi-card .delta{font-size:10.5px; color:var(--success); margin-top:6px; font-weight:700;}
+
+/* Score Walikhé ring */
+.score-card{background:var(--navy); border-radius:var(--radius); padding:20px; display:flex; align-items:center; gap:18px; margin-bottom:22px; box-shadow:var(--shadow);}
+.score-ring{width:78px; height:78px; position:relative; flex-shrink:0;}
+.score-ring svg{width:100%; height:100%; transform:rotate(-90deg);}
+.score-ring .center{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:600; font-size:18px; color:#fff;}
+.score-info h3{color:#fff; font-family:var(--font-display); font-size:15px; margin-bottom:4px;}
+.score-info p{color:rgba(255,255,255,0.65); font-size:11.5px; line-height:1.4;}
+
+.section-title{font-family:var(--font-display); font-weight:700; font-size:16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center;}
+.section-title .see-all{font-family:var(--font-body); font-weight:600; font-size:12px; color:var(--amber-dark); cursor:pointer;}
+
+/* Request card */
+.req-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:12px; box-shadow:var(--shadow);}
+.req-card .row1{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;}
+.req-card .client{font-weight:700; font-size:14.5px;}
+.req-card .service{font-size:12px; color:var(--amber-dark); font-weight:700; margin-top:1px;}
+.req-card .meta{font-size:12px; color:var(--muted); margin:8px 0 12px; line-height:1.6;}
+.req-card .meta div{display:flex; gap:6px;}
+.status-pill{font-size:10px; font-weight:700; padding:4px 9px; border-radius:6px; white-space:nowrap;}
+.status-new{background:#FCF0DC; color:var(--amber-dark);}
+.status-accepted{background:#E4EAFB; color:var(--navy);}
+.status-progress{background:#FCEADF; color:#B5561F;}
+.status-done{background:#EAF4EE; color:var(--success);}
+.status-refused{background:#FBE9E5; color:var(--danger);}
+.req-actions{display:flex; gap:8px;}
+.req-actions .btn{flex:1;}
+
+.filter-row{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:16px;}
+.chip{flex-shrink:0; padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:var(--card); font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer; white-space:nowrap;}
+.chip.active{background:var(--navy); border-color:var(--navy); color:#fff;}
+
+/* Planning */
+.day-group{margin-bottom:22px;}
+.day-label{font-family:var(--font-mono); font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;}
+.plan-item{display:flex; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:8px;}
+.plan-time{font-family:var(--font-mono); font-weight:600; font-size:13px; color:var(--navy); width:52px; flex-shrink:0;}
+.plan-info .t1{font-weight:700; font-size:13.5px;}
+.plan-info .t2{font-size:11.5px; color:var(--muted); margin-top:2px;}
+
+/* Revenue */
+.revenue-hero{background:var(--navy); border-radius:var(--radius); padding:22px 20px; margin:16px 0 22px; box-shadow:var(--shadow);}
+.revenue-hero .lbl{color:rgba(255,255,255,0.6); font-size:11.5px; font-weight:600;}
+.revenue-hero .amt{font-family:var(--font-mono); font-weight:600; font-size:28px; color:#fff; margin-top:6px;}
+.revenue-hero .sub{color:var(--amber); font-size:12px; margin-top:6px; font-weight:600;}
+.bar-chart{display:flex; align-items:flex-end; gap:8px; height:120px; margin-bottom:20px; padding:0 4px;}
+.bar-col{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;}
+.bar{width:100%; background:var(--amber); border-radius:6px 6px 0 0; min-height:4px;}
+.bar-col .lbl{font-size:9.5px; color:var(--muted); font-weight:600;}
+.rev-row{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.rev-row:last-child{border-bottom:none;}
+.rev-row .amt2{font-family:var(--font-mono); font-weight:600; color:var(--ink);}
+
+/* Profile edit */
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:7px;}
+.field input, .field select, .field textarea{width:100%; border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:13px 14px; font-family:var(--font-body); font-size:14px; background:var(--card); color:var(--ink);}
+.field input:focus, .field select:focus, .field textarea:focus{outline:none; border-color:var(--navy);}
+.photo-edit{display:flex; align-items:center; gap:16px; margin-bottom:20px;}
+.photo-edit .ph{width:76px; height:76px; border-radius:50%; background:var(--navy); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:26px; font-weight:700; border:3px solid var(--amber); overflow:hidden;}
+.ph img{width:100%; height:100%; object-fit:cover;}
+.service-chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:10px;}
+.toggle-row .t1{font-weight:700; font-size:13.5px;}
+.toggle-row .t2{font-size:11px; color:var(--muted); margin-top:2px;}
+.switch{width:44px; height:26px; border-radius:999px; background:var(--line); position:relative; cursor:pointer; flex-shrink:0; transition:background .2s;}
+.switch.on{background:var(--success);}
+.switch .knob{position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.switch.on .knob{left:21px;}
+
+.empty{text-align:center; padding:40px 10px; color:var(--muted); font-size:13px;}
+::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== QUI ÊTES-VOUS ===================== -->
+  <div class="screen active" id="screen-whoami">
+    <div class="topbar"><h1>Bienvenue sur walikhé</h1></div>
+    <div class="content">
+      <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Sélectionnez votre profil pour continuer.</p>
+      <div id="whoami-list"><div class="empty">Chargement…</div></div>
+      <div class="section-title" style="margin-top:24px;">Nouveau sur walikhé ?</div>
+      <button class="btn btn-ghost btn-block" onclick="toggleNewProForm()">+ Je suis un nouveau professionnel</button>
+      <div id="new-pro-form" style="display:none; margin-top:16px;">
+        <div class="field"><label>Votre photo (optionnel)</label>
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div class="ph" id="np-photo-preview" style="width:64px;height:64px;font-size:22px;">📷</div>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('np-photo-input').click()">Choisir une photo</button>
+            <input type="file" id="np-photo-input" accept="image/*" style="display:none;" onchange="loadProPhoto(this,'np')">
+          </div>
+        </div>
+        <div class="field"><label>Nom complet</label><input type="text" id="np-nom" placeholder="Ex : Mamadou Diallo"></div>
+        <div class="field"><label>Métier</label><input type="text" id="np-metier" placeholder="Ex : Électricien"></div>
+        <div class="field"><label>Catégorie</label>
+          <select id="np-categorie"></select>
+        </div>
+        <div class="field"><label>Zone d'intervention</label><input type="text" id="np-zone" placeholder="Ex : Madina, Matam"></div>
+        <div class="field"><label>Téléphone</label><input type="tel" id="np-telephone" placeholder="+224 6XX XX XX XX"></div>
+        <button class="btn btn-primary btn-block" onclick="createNewPro()">Envoyer ma demande d'inscription</button>
+        <p style="color:var(--muted); font-size:11.5px; margin-top:8px;">Votre profil sera visible aux clients après validation par l'administrateur.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TABLEAU DE BORD ===================== -->
+  <div class="screen" id="screen-dashboard">
+    <div class="topbar">
+      <div><h1 id="dash-hello">Bonjour</h1><div class="sub" id="dash-sub"></div></div>
+      <div class="back-btn" onclick="go('profile')">👤</div>
+    </div>
+    <div class="content">
+      <div class="score-card">
+        <div class="score-ring">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="8"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#F2A33C" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="264" stroke-dashoffset="42"/>
+          </svg>
+          <div class="center">84</div>
+        </div>
+        <div class="score-info">
+          <h3>Score Walikhé : Excellent</h3>
+          <p>Basé sur votre ponctualité, votre taux d'acceptation et les avis clients.</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="num" id="kpi-new">3</div><div class="lbl">Nouvelles demandes</div></div>
+        <div class="kpi-card"><div class="num">47</div><div class="lbl">Missions terminées</div><div class="delta">+5 ce mois</div></div>
+        <div class="kpi-card"><div class="num">★ 4.8</div><div class="lbl">Note moyenne</div></div>
+        <div class="kpi-card"><div class="num" id="kpi-revenu">0</div><div class="lbl">Revenus (GNF · mois)</div></div>
+      </div>
+
+      <div class="section-title">Nouvelles demandes <span class="see-all" onclick="go('requests')">Voir tout</span></div>
+      <div id="dash-requests"></div>
+    </div>
+    <div class="bottom-nav" id="nav-dashboard"></div>
+  </div>
+
+  <!-- ===================== DEMANDES ===================== -->
+  <div class="screen" id="screen-requests">
+    <div class="topbar"><h1>Demandes</h1></div>
+    <div class="content">
+      <div class="filter-row" id="req-filters"></div>
+      <div id="req-list"></div>
+    </div>
+    <div class="bottom-nav" id="nav-requests"></div>
+  </div>
+
+  <!-- ===================== PLANNING ===================== -->
+  <div class="screen" id="screen-planning">
+    <div class="topbar"><h1>Planning</h1></div>
+    <div class="content" id="planning-content"></div>
+    <div class="bottom-nav" id="nav-planning"></div>
+  </div>
+
+  <!-- ===================== DISCUSSION ===================== -->
+  <div class="screen" id="screen-chat">
+    <div class="topbar"><div class="back-btn" onclick="closeChat()">←</div><h1 id="chat-title">Discussion</h1><div style="width:36px;"></div></div>
+    <div class="content" id="chat-messages" style="display:flex; flex-direction:column; gap:8px; padding-bottom:16px;"></div>
+    <div style="position:sticky; bottom:0; background:var(--bg); padding:10px 20px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px; border-top:1px solid var(--line);">
+      <input type="text" id="chat-input" placeholder="Écrire un message…" style="flex:1; border:1.5px solid var(--line); border-radius:999px; padding:11px 16px; font-family:inherit; font-size:14px;">
+      <button class="btn btn-primary" style="border-radius:50%; width:44px; height:44px; padding:0; flex-shrink:0;" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- ===================== REVENUS ===================== -->
+  <div class="screen" id="screen-revenue">
+    <div class="topbar"><h1>Revenus</h1></div>
+    <div class="content">
+      <div class="revenue-hero">
+        <div class="lbl">TOTAL CE MOIS-CI</div>
+        <div class="amt">2 400 000 GNF</div>
+        <div class="sub">▲ 18% par rapport au mois dernier</div>
+      </div>
+      <div class="section-title">6 derniers mois</div>
+      <div class="bar-chart" id="bar-chart"></div>
+      <div class="section-title">Par service</div>
+      <div id="rev-breakdown"></div>
+    </div>
+    <div class="bottom-nav" id="nav-revenue"></div>
+  </div>
+
+  <!-- ===================== PROFIL PRO ===================== -->
+  <div class="screen" id="screen-profile">
+    <div class="topbar"><h1>Mon profil</h1></div>
+    <div class="content">
+      <div class="photo-edit">
+        <div class="ph" id="pf-photo">IS</div>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('pf-photo-input').click()">Changer la photo</button>
+        <input type="file" id="pf-photo-input" accept="image/*" style="display:none;" onchange="loadProPhoto(this,'pf')">
+      </div>
+      <div class="field"><label>Nom</label><input type="text" id="pf-nom" value="Ibrahima Sow"></div>
+      <div class="field"><label>Métier principal</label><input type="text" id="pf-metier" value="Électricien"></div>
+      <div class="field"><label>Services proposés</label>
+        <div class="service-chips" id="service-chips"></div>
+      </div>
+      <div class="field"><label>Tarif estimatif</label><input type="text" id="pf-tarif" value="150 000 – 300 000 GNF"></div>
+      <div class="field"><label>Zone d'intervention</label><input type="text" id="pf-zone" value="Madina, Matam"></div>
+
+      <div class="toggle-row">
+        <div><div class="t1">Disponible maintenant</div><div class="t2">Visible en priorité pour les urgences</div></div>
+        <div class="switch on" id="sw-avail" onclick="toggleSwitch('sw-avail')"><div class="knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="t1">Recevoir des notifications WhatsApp</div><div class="t2">Nouvelle demande, message client</div></div>
+        <div class="switch on" id="sw-notif" onclick="toggleSwitch('sw-notif')"><div class="knob"></div></div>
+      </div>
+
+      <div class="field"><label>Numéro Mobile Money (pour être payé)</label><input type="tel" id="pf-mobilemoney" placeholder="+224 6XX XX XX XX"></div>
+      <button class="btn btn-primary btn-block" style="margin-top:8px;" onclick="saveProfile()">Enregistrer les modifications</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="switchAccount()">🔄 Changer de compte</button>
+    </div>
+    <div class="bottom-nav" id="nav-profile"></div>
+  </div>
+
+</div>
+
+<!-- ===================== MODALE FIN DE MISSION ===================== -->
+<div class="drawer-overlay" id="finish-overlay" style="display:none; position:fixed; inset:0; background:rgba(18,25,46,0.5); z-index:300;" onclick="closeFinishModal()"></div>
+<div id="finish-modal" style="display:none; position:fixed; left:50%; bottom:0; transform:translateX(-50%); width:100%; max-width:480px; max-height:88vh; overflow-y:auto; background:var(--card); border-radius:20px 20px 0 0; z-index:301; padding:22px 20px calc(22px + env(safe-area-inset-bottom));">
+  <h3 style="font-family:var(--font-display); font-size:16px; margin-bottom:16px;">Terminer la mission</h3>
+  <div class="field"><label>Rapport du travail effectué</label><textarea id="fin-rapport" placeholder="Ex : Remplacement du disjoncteur principal, vérification du tableau électrique, tout est fonctionnel." style="min-height:90px;"></textarea></div>
+  <div class="field">
+    <label>Photos du travail effectué (optionnel)</label>
+    <div id="fin-photos-preview" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"></div>
+    <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('fin-photos-input').click()">📷 Ajouter des photos</button>
+    <input type="file" id="fin-photos-input" accept="image/*" multiple style="display:none;" onchange="handleFinishPhotos(this)">
+  </div>
+  <div class="field"><label>Montant reçu (GNF)</label><input type="number" id="fin-montant" placeholder="Ex : 200000"></div>
+  <div class="field"><label>Moyen de paiement</label>
+    <select id="fin-paiement">
+      <option value="Espèces">Espèces</option>
+      <option value="Orange Money">Orange Money</option>
+      <option value="Mobile Money">Mobile Money (autre opérateur)</option>
+      <option value="Autre">Autre</option>
+    </select>
+  </div>
+  <div style="display:flex; gap:10px; margin-top:6px;">
+    <button class="btn btn-ghost" style="flex:1;" onclick="closeFinishModal()">Annuler</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="confirmFinish()">✅ Confirmer</button>
+  </div>
+</div>
+
+<script>
+/* ============ FIREBASE (Walikhé) ============ */
+var WK_FB_KEY = 'AIzaSyAfHunjUEhNghi-t5rjXNuKyN9YuO2wqEk';
+var WK_FB_PID = 'walikhe-ccf06';
+var WK_FB_BASE = 'https://firestore.googleapis.com/v1/projects/' + WK_FB_PID + '/databases/(default)/documents/';
+
+function wkFetchTimeout(url, opts, ms) {
+  ms = ms || 8000;
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, ms);
+  return fetch(url, Object.assign({signal: ctrl.signal}, opts || {}))
+    .then(function(r){ clearTimeout(timer); return r; })
+    .catch(function(e){ clearTimeout(timer); throw e; });
+}
+function wkParse(fields) {
+  var o = {};
+  if (!fields) return o;
+  Object.keys(fields).forEach(function(k) {
+    var v = fields[k];
+    var val = v.stringValue !== undefined ? v.stringValue
+      : v.doubleValue !== undefined ? v.doubleValue
+      : v.integerValue !== undefined ? Number(v.integerValue)
+      : v.booleanValue !== undefined ? v.booleanValue : null;
+    if (typeof val === 'string' && val.length > 1 && (val[0]==='['||val[0]==='{')) {
+      try { val = JSON.parse(val); } catch(e) {}
+    }
+    o[k] = val;
+  });
+  return o;
+}
+function wkSerial(data) {
+  var f = {};
+  Object.keys(data).forEach(function(k) {
+    if (k==='_id') return;
+    var v = data[k];
+    if (v===null||v===undefined) f[k]={nullValue:null};
+    else if (typeof v==='number') f[k]={doubleValue:v};
+    else if (typeof v==='boolean') f[k]={booleanValue:v};
+    else if (Array.isArray(v)||(typeof v==='object')) f[k]={stringValue:JSON.stringify(v)};
+    else f[k]={stringValue:String(v)};
+  });
+  return f;
+}
+async function wkGetAll(col) {
+  var allDocs = [];
+  var pageToken = null;
+  do {
+    var url = WK_FB_BASE + col + '?key=' + WK_FB_KEY + '&pageSize=300';
+    if (pageToken) url += '&pageToken=' + pageToken;
+    var r = await wkFetchTimeout(url, {}, 15000);
+    if (!r.ok) throw new Error(col + ' error ' + r.status);
+    var j = await r.json();
+    pageToken = j.nextPageToken || null;
+    if (j.documents) {
+      var docs = j.documents.map(function(d) {
+        var o = wkParse(d.fields);
+        o._id = d.name.split('/').pop();
+        return o;
+      });
+      allDocs = allDocs.concat(docs);
+    }
+  } while (pageToken);
+  return allDocs;
+}
+async function wkPut(col, id, data) {
+  var url = WK_FB_BASE + col + '/' + id + '?key=' + WK_FB_KEY;
+  var r = await wkFetchTimeout(url, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({fields: wkSerial(data)})
+  }, 8000);
+  if (!r.ok) throw new Error('put error ' + r.status);
+}
+async function wkDel(col, id) {
+  var url = WK_FB_BASE + col + '/' + id + '?key=' + WK_FB_KEY;
+  await wkFetchTimeout(url, {method:'DELETE'}, 8000);
+}
+function wkFormatDate(iso){
+  if(!iso) return 'Date non précisée';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()} · ${hh}h${mi}`;
+}
+function wkFormatTime(iso){
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return String(d.getHours()).padStart(2,'0') + 'h' + String(d.getMinutes()).padStart(2,'0');
+}
+
+/* ============ DONNÉES ============ */
+let myPro = null;
+let allPros = [];
+let requests = [];
+let _chatPollTimer = null;
+let _currentChatId = null;
+let activeFilter = 'all';
+let wkOnline = false;
+let _wkPollTimer = null;
+
+// statut : 0 nouvelle, 1 acceptée, 2 en cours, 3 terminée, 4 refusée
+const statusMeta = {
+  0:{lbl:'🟡 Nouvelle', cls:'status-new'},
+  1:{lbl:'🔵 Acceptée', cls:'status-accepted'},
+  2:{lbl:'🟠 En cours', cls:'status-progress'},
+  3:{lbl:'🟢 Terminée', cls:'status-done'},
+  4:{lbl:'⛔ Refusée', cls:'status-refused'},
+};
+
+const navItems = [
+  {id:'dashboard', ic:'🏠', lbl:'Tableau de bord'},
+  {id:'requests', ic:'📩', lbl:'Demandes'},
+  {id:'planning', ic:'📅', lbl:'Planning'},
+  {id:'revenue', ic:'💰', lbl:'Revenus'},
+  {id:'profile', ic:'👤', lbl:'Profil'},
+];
+
+/* ============ IDENTIFICATION ============ */
+let categories = [];
+const DEMO_CATEGORIES = [
+  {id:'elec', ic:'⚡', lbl:'Électricité'},
+  {id:'plomb', ic:'🔧', lbl:'Plomberie'},
+  {id:'meca', ic:'🚗', lbl:'Mécanique'},
+  {id:'bat', ic:'🧱', lbl:'Bâtiment'},
+  {id:'info', ic:'💻', lbl:'Informatique'},
+  {id:'net', ic:'🧹', lbl:'Nettoyage'},
+  {id:'autre', ic:'🛠', lbl:'Autres'},
+];
+async function wkStart(){
+  try {
+    allPros = await wkGetAll('professionnels');
+    wkOnline = true;
+  } catch(e) {
+    console.log('Walikhé : Firebase indisponible au démarrage.', e);
+    allPros = [];
+    wkOnline = false;
+  }
+  try {
+    let cl = wkOnline ? await wkGetAll('categories') : [];
+    categories = cl.length ? cl : DEMO_CATEGORIES.slice();
+  } catch(e) { categories = DEMO_CATEGORIES.slice(); }
+  document.getElementById('np-categorie').innerHTML = categories.map(c=>`<option value="${c.id}">${c.lbl}</option>`).join('');
+  const savedId = localStorage.getItem('wk_pro_id');
+  if (savedId && allPros.find(p=>String(p.id)===String(savedId))) {
+    myPro = allPros.find(p=>String(p.id)===String(savedId));
+    startApp();
+  } else {
+    renderWhoami();
+  }
+}
+function renderWhoami(){
+  if (!wkOnline) {
+    document.getElementById('whoami-list').innerHTML = '<div class="empty">Connexion à Walikhé impossible pour le moment.<br>Vérifiez votre connexion internet et réessayez.</div>';
+    return;
+  }
+  if (!allPros.length) {
+    document.getElementById('whoami-list').innerHTML = '<div class="empty">Aucun profil professionnel trouvé.<br>Créez le vôtre ci-dessous.</div>';
+    return;
+  }
+  document.getElementById('whoami-list').innerHTML = allPros.map(p => `
+    <div class="req-card" style="cursor:pointer;" onclick="chooseWhoami(${p.id})">
+      <div class="row1">
+        <div><div class="client">${p.nom}</div><div class="service">${p.metier || ''} ${p.zone ? '· '+p.zone : ''}</div></div>
+        ${p.statut==='attente' ? '<span class="status-pill status-new">🟡 En attente</span>' : ''}
+      </div>
+    </div>`).join('');
+}
+function loadProPhoto(input, prefix){
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const maxSize = 500;
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      window['_'+prefix+'PhotoData'] = compressed;
+      const preview = document.getElementById(prefix+'-photo') || document.getElementById(prefix+'-photo-preview');
+      if (preview) preview.innerHTML = `<img src="${compressed}" alt="Photo">`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function toggleNewProForm(){
+  const el = document.getElementById('new-pro-form');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+async function createNewPro(){
+  const nom = document.getElementById('np-nom').value.trim();
+  const metier = document.getElementById('np-metier').value.trim();
+  const categorie = document.getElementById('np-categorie').value;
+  const zone = document.getElementById('np-zone').value.trim();
+  const telephone = document.getElementById('np-telephone').value.trim();
+  if(!nom || !metier || !zone || !telephone){ alert('Merci de remplir tous les champs.'); return; }
+  const p = {
+    id: Date.now(), nom, metier, categorie, zone, telephone,
+    note: 0, certifie: false, experience: '', tarif: 'À définir',
+    disponibilite: 'sched', statut: 'attente', missions: 0,
+    photo: window._npPhotoData || null,
+    createdAt: new Date().toISOString()
+  };
+  if (wkOnline) {
+    try { await wkPut('professionnels', 'pro-' + p.id, p); }
+    catch(e) { alert('Erreur d’envoi. Vérifiez votre connexion.'); return; }
+  }
+  allPros.push(p);
+  myPro = p;
+  localStorage.setItem('wk_pro_id', p.id);
+  alert('Inscription envoyée ! Votre profil sera visible dès validation par l’administrateur.');
+  startApp();
+}
+function chooseWhoami(id){
+  myPro = allPros.find(p=>p.id===id);
+  localStorage.setItem('wk_pro_id', id);
+  startApp();
+}
+function switchAccount(){
+  if(!confirm('Changer de compte professionnel sur cet appareil ?')) return;
+  localStorage.removeItem('wk_pro_id');
+  myPro = null;
+  if (_wkPollTimer) { clearInterval(_wkPollTimer); _wkPollTimer=null; }
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-whoami').classList.add('active');
+  renderWhoami();
+}
+async function startApp(){
+  document.getElementById('dash-hello').textContent = 'Bonjour, ' + (myPro.nom ? myPro.nom.split(' ')[0] : '');
+  document.getElementById('dash-sub').textContent = (myPro.metier||'') + (myPro.zone ? ' · '+myPro.zone : '');
+  await loadMyRequests();
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-dashboard').classList.add('active');
+  renderNav('dashboard');
+  renderDashboard();
+  startPolling();
+}
+function startPolling(){
+  if (_wkPollTimer) clearInterval(_wkPollTimer);
+  _wkPollTimer = setInterval(async ()=>{
+    if (!wkOnline || !myPro) return;
+    await loadMyRequests();
+    const active = document.querySelector('.screen.active')?.id;
+    if (active==='screen-dashboard') renderDashboard();
+    if (active==='screen-requests') renderRequests();
+    if (active==='screen-planning') renderPlanning();
+    renderNav(active ? active.replace('screen-','') : 'dashboard');
+  }, 20000);
+}
+async function loadMyRequests(){
+  if (!wkOnline || !myPro) return;
+  try {
+    const all = await wkGetAll('demandes');
+    requests = all.filter(d => d.proId === myPro.id).sort((a,b)=>(b.id||0)-(a.id||0));
+  } catch(e) { console.log('Erreur chargement des demandes:', e); }
+}
+
+/* ============ NAVIGATION ============ */
+function go(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+screen).classList.add('active');
+  renderNav(screen);
+  if(screen==='dashboard') renderDashboard();
+  if(screen==='requests') renderRequests();
+  if(screen==='planning') renderPlanning();
+  if(screen==='revenue') renderRevenue();
+  if(screen==='profile') renderProfile();
+  if(screen!=='chat' && _chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer=null; }
+  window.scrollTo(0,0);
+}
+function renderNav(active){
+  const newCount = requests.filter(r=>r.statut===0).length;
+  ['dashboard','requests','planning','revenue','profile'].forEach(id=>{
+    const el = document.getElementById('nav-'+id);
+    if(!el) return;
+    el.innerHTML = navItems.map(n=>`
+      <div class="nav-item ${n.id===active?'active':''}" onclick="go('${n.id}')">
+        <span class="ic dot">${n.ic}${(n.id==='requests'&&newCount>0)?'<span class="badge-dot"></span>':''}</span><span>${n.lbl}</span>
+      </div>`).join('');
+  });
+}
+
+/* ============ TABLEAU DE BORD ============ */
+function renderDashboard(){
+  document.getElementById('kpi-new').textContent = requests.filter(r=>r.statut===0).length;
+  const now = new Date();
+  const revenuMois = requests.filter(r=>r.statut===3 && r.montant && r.updatedAt && new Date(r.updatedAt).getMonth()===now.getMonth() && new Date(r.updatedAt).getFullYear()===now.getFullYear())
+    .reduce((sum,r)=>sum+Number(r.montant||0), 0);
+  const kpiRevenu = document.getElementById('kpi-revenu');
+  if (kpiRevenu) kpiRevenu.textContent = revenuMois >= 1000000 ? (revenuMois/1000000).toLocaleString('fr-FR',{maximumFractionDigits:1})+'M' : revenuMois.toLocaleString('fr-FR');
+  const newest = requests.filter(r=>r.statut===0).slice(0,3);
+  document.getElementById('dash-requests').innerHTML = newest.length ? newest.map(r=>reqCardHTML(r)).join('') : '<div class="empty">Aucune nouvelle demande pour le moment.</div>';
+}
+
+/* ============ DEMANDES ============ */
+function renderRequests(){
+  const filters = [
+    {id:'all', lbl:'Toutes'},{id:0, lbl:'🟡 Nouvelles'},{id:1, lbl:'🔵 Acceptées'},
+    {id:2, lbl:'🟠 En cours'},{id:3, lbl:'🟢 Terminées'},{id:4, lbl:'⛔ Refusées'},
+  ];
+  document.getElementById('req-filters').innerHTML = filters.map(f=>`<div class="chip ${activeFilter===f.id?'active':''}" onclick="setFilter('${f.id}')">${f.lbl}</div>`).join('');
+  const list = requests.filter(r=>activeFilter==='all'||String(r.statut)===String(activeFilter));
+  document.getElementById('req-list').innerHTML = list.length ? list.map(r=>reqCardHTML(r)).join('') : '<div class="empty">Aucune demande dans cette catégorie.</div>';
+}
+function setFilter(id){ activeFilter = (id==='all') ? 'all' : Number(id); renderRequests(); }
+
+function reqCardHTML(r){
+  const sm = statusMeta[r.statut] || statusMeta[0];
+  let actions = '';
+  if(r.statut===0){
+    actions = `<div class="req-actions">
+      <button class="btn btn-danger btn-sm" onclick="updateStatus(${r.id},4)">Refuser</button>
+      <button class="btn btn-success btn-sm" onclick="updateStatus(${r.id},1)">✅ Accepter</button>
+    </div>`;
+  } else if(r.statut===1 || r.statut===2){
+    actions = `<div class="req-actions">
+      <button class="btn btn-ghost btn-sm" onclick="location.href='tel:${r.clientTelephone||''}'">📞 Appeler</button>
+      <button class="btn btn-ghost btn-sm" onclick="openChat(${r.id})">💬 Contacter</button>
+      ${r.statut===1 ? `<button class="btn btn-primary btn-sm" onclick="updateStatus(${r.id},2)">Démarrer</button>` : `<button class="btn btn-primary btn-sm" onclick="openFinishModal(${r.id})">Terminer</button>`}
+    </div>`;
+  }
+  return `
+  <div class="req-card">
+    <div class="row1">
+      <div><div class="client">${r.clientNom}</div><div class="service">${r.service}</div></div>
+      <span class="status-pill ${sm.cls}">${sm.lbl}</span>
+    </div>
+    <div class="meta">
+      <div>📝 ${r.description||'—'}</div>
+      <div>📍 ${r.adresse||'—'}</div>
+      <div>🗓 ${wkFormatDate(r.date)}</div>
+      ${r.statut===3 && r.montant ? `<div>💰 ${Number(r.montant).toLocaleString('fr-FR')} GNF · ${r.moyenPaiement||''}</div>` : ''}
+      ${r.statut===3 && r.rapport ? `<div>📋 ${r.rapport}</div>` : ''}
+      ${r.statut===3 && r.photos && r.photos.length ? `<div style="display:flex; gap:6px; margin-top:6px;">${r.photos.map(src=>`<img src="${src}" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);">`).join('')}</div>` : ''}
+    </div>
+    ${actions}
+  </div>`;
+}
+let _finishingId = null;
+let _finPhotos = [];
+function openFinishModal(id){
+  _finishingId = id;
+  _finPhotos = [];
+  document.getElementById('fin-montant').value = '';
+  document.getElementById('fin-rapport').value = '';
+  renderFinPhotos();
+  document.getElementById('finish-overlay').style.display = 'block';
+  document.getElementById('finish-modal').style.display = 'block';
+}
+function closeFinishModal(){
+  _finishingId = null;
+  document.getElementById('finish-overlay').style.display = 'none';
+  document.getElementById('finish-modal').style.display = 'none';
+}
+function handleFinishPhotos(input){
+  const files = Array.from(input.files || []);
+  if (_finPhotos.length + files.length > 5) { alert('5 photos maximum par mission.'); input.value=''; return; }
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.onload = function(){
+        const canvas = document.createElement('canvas');
+        const maxSize = 700;
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        _finPhotos.push(canvas.toDataURL('image/jpeg', 0.65));
+        renderFinPhotos();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+function renderFinPhotos(){
+  document.getElementById('fin-photos-preview').innerHTML = _finPhotos.map((src,i)=>`
+    <div style="position:relative; width:64px; height:64px;">
+      <img src="${src}" style="width:100%; height:100%; object-fit:cover; border-radius:10px; border:1px solid var(--line);">
+      <div onclick="removeFinPhoto(${i})" style="position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:var(--danger); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer;">✕</div>
+    </div>`).join('');
+}
+function removeFinPhoto(i){
+  _finPhotos.splice(i,1);
+  renderFinPhotos();
+}
+async function confirmFinish(){
+  const montant = Number(document.getElementById('fin-montant').value || 0);
+  const moyenPaiement = document.getElementById('fin-paiement').value;
+  const rapport = document.getElementById('fin-rapport').value.trim();
+  if (montant <= 0) { alert('Merci de saisir le montant reçu.'); return; }
+  if (!rapport) { alert('Merci de décrire brièvement le travail effectué.'); return; }
+  const id = _finishingId;
+  const photos = _finPhotos.slice();
+  closeFinishModal();
+  await updateStatus(id, 3, {montant, moyenPaiement, rapport, photos});
+}
+async function updateStatus(id, statut, extra){
+  const r = requests.find(x=>x.id===id);
+  if(!r) return;
+  r.statut = statut;
+  r.updatedAt = new Date().toISOString();
+  if (extra) Object.assign(r, extra);
+  renderRequests();
+  renderNav('requests');
+  renderDashboard();
+  if (wkOnline) {
+    try { await wkPut('demandes', 'dem-' + id, r); }
+    catch(e) { console.log('Erreur mise à jour statut:', e); }
+  }
+}
+
+/* ============ PLANNING ============ */
+function renderPlanning(){
+  const upcoming = requests.filter(r=>r.statut===1||r.statut===2);
+  if(!upcoming.length){
+    document.getElementById('planning-content').innerHTML = '<div class="empty">📅<br><br>Aucune intervention programmée.<br>Acceptez une demande pour la voir apparaître ici.</div>';
+    return;
+  }
+  document.getElementById('planning-content').innerHTML = `
+    <div class="day-group">
+      <div class="day-label">À venir</div>
+      ${upcoming.map(r=>`
+        <div class="plan-item">
+          <div class="plan-time">${wkFormatTime(r.date)}</div>
+          <div class="plan-info">
+            <div class="t1">${r.clientNom} — ${r.service}</div>
+            <div class="t2">${r.adresse} · ${wkFormatDate(r.date)}</div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+/* ============ REVENUS ============ */
+function renderRevenue(){
+  const done = requests.filter(r=>r.statut===3 && r.montant);
+  const totalMois = (() => {
+    const now = new Date();
+    return done.filter(r=>r.updatedAt && new Date(r.updatedAt).getMonth()===now.getMonth() && new Date(r.updatedAt).getFullYear()===now.getFullYear())
+      .reduce((s,r)=>s+Number(r.montant||0),0);
+  })();
+  document.querySelector('.revenue-hero .amt').textContent = totalMois.toLocaleString('fr-FR') + ' GNF';
+  document.querySelector('.revenue-hero .sub').textContent = done.length ? `${done.length} mission${done.length>1?'s':''} payée${done.length>1?'s':''} au total` : 'Aucun paiement enregistré pour l’instant';
+
+  const monthsMap = {};
+  done.forEach(r=>{
+    if(!r.updatedAt) return;
+    const d = new Date(r.updatedAt);
+    const key = d.toLocaleDateString('fr-FR',{month:'short'});
+    monthsMap[key] = (monthsMap[key]||0) + Number(r.montant||0);
+  });
+  const monthEntries = Object.entries(monthsMap);
+  const max = Math.max(1, ...monthEntries.map(x=>x[1]));
+  document.getElementById('bar-chart').innerHTML = monthEntries.length ? monthEntries.map(([m,v])=>`
+    <div class="bar-col">
+      <div class="bar" style="height:${(v/max*100)}px;"></div>
+      <div class="lbl">${m}</div>
+    </div>`).join('') : '<div class="empty" style="width:100%;">Pas encore de données.</div>';
+
+  const byService = {};
+  done.forEach(r=>{ byService[r.service] = (byService[r.service]||0) + Number(r.montant||0); });
+  const breakdown = Object.entries(byService).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('rev-breakdown').innerHTML = breakdown.length ? breakdown.map(([s,v])=>`
+    <div class="rev-row"><span>${s}</span><span class="amt2">${v.toLocaleString('fr-FR')} GNF</span></div>`).join('') : '<div class="empty">Pas encore de mission payée.</div>';
+}
+
+/* ============ PROFIL ============ */
+function renderProfile(){
+  if (!myPro) return;
+  window._pfPhotoData = undefined;
+  const photoEl = document.getElementById('pf-photo');
+  if (myPro.photo) photoEl.innerHTML = `<img src="${myPro.photo}" alt="Photo">`;
+  else photoEl.textContent = (myPro.nom||'').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('pf-nom').value = myPro.nom || '';
+  document.getElementById('pf-metier').value = myPro.metier || '';
+  document.getElementById('pf-tarif').value = myPro.tarif || '';
+  document.getElementById('pf-zone').value = myPro.zone || '';
+  document.getElementById('pf-mobilemoney').value = myPro.mobileMoney || myPro.telephone || '';
+  const services = ['Dépannage', 'Installation', 'Entretien', 'Rénovation', 'Urgences 24h/24'];
+  const active = myPro.services || ['Dépannage','Installation'];
+  document.getElementById('service-chips').innerHTML = services.map(s=>`
+    <div class="chip ${active.includes(s)?'active':''}" onclick="this.classList.toggle('active')">${s}</div>`).join('');
+  document.getElementById('sw-avail').classList.toggle('on', myPro.disponibilite==='now');
+}
+function toggleSwitch(id){
+  document.getElementById(id).classList.toggle('on');
+}
+async function saveProfile(){
+  myPro.nom = document.getElementById('pf-nom').value.trim();
+  myPro.metier = document.getElementById('pf-metier').value.trim();
+  myPro.tarif = document.getElementById('pf-tarif').value.trim();
+  myPro.zone = document.getElementById('pf-zone').value.trim();
+  myPro.mobileMoney = document.getElementById('pf-mobilemoney').value.trim();
+  myPro.services = Array.from(document.querySelectorAll('#service-chips .chip.active')).map(el=>el.textContent);
+  myPro.disponibilite = document.getElementById('sw-avail').classList.contains('on') ? 'now' : 'today';
+  if (window._pfPhotoData) myPro.photo = window._pfPhotoData;
+  document.getElementById('dash-hello').textContent = 'Bonjour, ' + myPro.nom.split(' ')[0];
+  document.getElementById('dash-sub').textContent = myPro.metier + (myPro.zone ? ' · '+myPro.zone : '');
+  if (wkOnline) {
+    try { await wkPut('professionnels', 'pro-' + myPro.id, myPro); alert('Profil mis à jour.'); }
+    catch(e) { alert('Erreur d’envoi. Vérifiez votre connexion.'); }
+  } else {
+    alert('Profil mis à jour localement (hors connexion).');
+  }
+}
+
+/* ============ INIT ============ */
+/* ============ MESSAGERIE ============ */
+async function openChat(demandeId){
+  const r = requests.find(x=>x.id===demandeId);
+  if (!r) return;
+  _currentChatId = demandeId;
+  document.getElementById('chat-title').textContent = r.clientNom;
+  document.getElementById('chat-messages').innerHTML = '<div class="empty">Chargement…</div>';
+  go('chat');
+  await loadChatMessages();
+  if (_chatPollTimer) clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(async ()=>{
+    const scr = document.getElementById('screen-chat');
+    if (!scr || !scr.classList.contains('active') || !wkOnline) { clearInterval(_chatPollTimer); _chatPollTimer=null; return; }
+    await loadChatMessages();
+  }, 8000);
+}
+function closeChat(){
+  _currentChatId = null;
+  if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer=null; }
+  go('requests');
+}
+async function loadChatMessages(){
+  if (!wkOnline || !_currentChatId) { renderChatMessages([]); return; }
+  try {
+    const all = await wkGetAll('messages');
+    const mine = all.filter(m=>m.demandeId===_currentChatId).sort((a,b)=>(a.id||0)-(b.id||0));
+    renderChatMessages(mine);
+  } catch(e) { console.log('Erreur chargement messages:', e); }
+}
+function renderChatMessages(list){
+  const el = document.getElementById('chat-messages');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">💬<br><br>Aucun message pour l’instant.<br>Écrivez le premier !</div>';
+    return;
+  }
+  el.innerHTML = list.map(m=>`
+    <div style="align-self:${m.sender==='pro'?'flex-end':'flex-start'}; max-width:75%; background:${m.sender==='pro'?'var(--navy)':'var(--card)'}; color:${m.sender==='pro'?'#fff':'var(--ink)'}; border:${m.sender==='pro'?'none':'1px solid var(--line)'}; padding:10px 14px; border-radius:14px; font-size:13.5px;">
+      ${m.texte}
+    </div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+async function sendMessage(){
+  const input = document.getElementById('chat-input');
+  const texte = input.value.trim();
+  if (!texte || !_currentChatId) return;
+  const r = requests.find(x=>x.id===_currentChatId);
+  const msg = {
+    id: Date.now(),
+    demandeId: _currentChatId,
+    proId: myPro ? myPro.id : null,
+    clientTelephone: r ? r.clientTelephone : '',
+    sender: 'pro',
+    texte,
+    createdAt: new Date().toISOString()
+  };
+  input.value = '';
+  const el = document.getElementById('chat-messages');
+  if (el.querySelector('.empty')) el.innerHTML = '';
+  el.insertAdjacentHTML('beforeend', `<div style="align-self:flex-end; max-width:75%; background:var(--navy); color:#fff; padding:10px 14px; border-radius:14px; font-size:13.5px;">${msg.texte}</div>`);
+  el.scrollTop = el.scrollHeight;
+  if (wkOnline) {
+    try { await wkPut('messages', 'msg-' + msg.id, msg); }
+    catch(e) { console.log('Erreur envoi message:', e); }
+  }
+}
+document.getElementById('chat-input')?.addEventListener('keydown', function(e){ if (e.key==='Enter') sendMessage(); });
+
+wkStart();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(e){ console.log('SW non enregistré:', e); });
+  });
+}
+</script>
+</body>
+</html>
