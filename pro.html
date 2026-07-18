@@ -139,9 +139,13 @@ body{font-family:var(--font-body); background:var(--ink); color:var(--ink); disp
   <div class="screen active" id="screen-whoami">
     <div class="topbar"><h1>Bienvenue sur walikhé</h1></div>
     <div class="content">
-      <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Sélectionnez votre profil pour continuer.</p>
-      <div id="whoami-list"><div class="empty">Chargement…</div></div>
-      <div class="section-title" style="margin-top:24px;">Nouveau sur walikhé ?</div>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:16px;">Connectez-vous à votre espace professionnel.</p>
+      <div class="field"><label>Téléphone</label><input type="tel" id="login-phone" placeholder="+224 6XX XX XX XX"></div>
+      <div class="field"><label>Mot de passe</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="btn btn-primary btn-block" onclick="loginPro()">Se connecter</button>
+      <p id="login-error" style="color:var(--danger); font-size:12px; text-align:center; margin-top:10px; display:none;"></p>
+
+      <div class="section-title" style="margin-top:28px;">Nouveau sur walikhé ?</div>
       <button class="btn btn-ghost btn-block" onclick="toggleNewProForm()">+ Je suis un nouveau professionnel</button>
       <div id="new-pro-form" style="display:none; margin-top:16px;">
         <div class="field"><label>Votre photo (optionnel)</label>
@@ -158,6 +162,8 @@ body{font-family:var(--font-body); background:var(--ink); color:var(--ink); disp
         </div>
         <div class="field"><label>Zone d'intervention</label><input type="text" id="np-zone" placeholder="Ex : Madina, Matam"></div>
         <div class="field"><label>Téléphone</label><input type="tel" id="np-telephone" placeholder="+224 6XX XX XX XX"></div>
+        <div class="field"><label>Créer un mot de passe</label><input type="password" id="np-password" placeholder="8 caractères minimum"></div>
+        <div class="field"><label>Confirmer le mot de passe</label><input type="password" id="np-password2" placeholder="••••••••"></div>
         <button class="btn btn-primary btn-block" onclick="createNewPro()">Envoyer ma demande d'inscription</button>
         <p style="color:var(--muted); font-size:11.5px; margin-top:8px;">Votre profil sera visible aux clients après validation par l'administrateur.</p>
       </div>
@@ -270,6 +276,7 @@ body{font-family:var(--font-body); background:var(--ink); color:var(--ink); disp
       </div>
 
       <div class="field"><label>Numéro Mobile Money (pour être payé)</label><input type="tel" id="pf-mobilemoney" placeholder="+224 6XX XX XX XX"></div>
+      <div class="field"><label>Nouveau mot de passe (laisser vide pour ne pas changer)</label><input type="password" id="pf-password" placeholder="8 caractères minimum"></div>
       <button class="btn btn-primary btn-block" style="margin-top:8px;" onclick="saveProfile()">Enregistrer les modifications</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="switchAccount()">🔄 Changer de compte</button>
     </div>
@@ -449,30 +456,35 @@ async function wkStart(){
     categories = cl.length ? cl : DEMO_CATEGORIES.slice();
   } catch(e) { categories = DEMO_CATEGORIES.slice(); }
   document.getElementById('np-categorie').innerHTML = categories.map(c=>`<option value="${c.id}">${c.lbl}</option>`).join('');
+  if (!wkOnline) {
+    document.getElementById('login-error').textContent = 'Connexion à Walikhé impossible pour le moment. Vérifiez votre connexion internet.';
+    document.getElementById('login-error').style.display = 'block';
+  }
   const savedId = localStorage.getItem('wk_pro_id');
   if (savedId && allPros.find(p=>String(p.id)===String(savedId))) {
     myPro = allPros.find(p=>String(p.id)===String(savedId));
     startApp();
-  } else {
-    renderWhoami();
   }
 }
-function renderWhoami(){
-  if (!wkOnline) {
-    document.getElementById('whoami-list').innerHTML = '<div class="empty">Connexion à Walikhé impossible pour le moment.<br>Vérifiez votre connexion internet et réessayez.</div>';
-    return;
-  }
-  if (!allPros.length) {
-    document.getElementById('whoami-list').innerHTML = '<div class="empty">Aucun profil professionnel trouvé.<br>Créez le vôtre ci-dessous.</div>';
-    return;
-  }
-  document.getElementById('whoami-list').innerHTML = allPros.map(p => `
-    <div class="req-card" style="cursor:pointer;" onclick="chooseWhoami(${p.id})">
-      <div class="row1">
-        <div><div class="client">${p.nom}</div><div class="service">${p.metier || ''} ${p.zone ? '· '+p.zone : ''}</div></div>
-        ${p.statut==='attente' ? '<span class="status-pill status-new">🟡 En attente</span>' : ''}
-      </div>
-    </div>`).join('');
+async function wkHash(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function loginPro(){
+  const phone = document.getElementById('login-phone').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!phone || !password) { errEl.textContent = 'Merci de renseigner votre téléphone et votre mot de passe.'; errEl.style.display='block'; return; }
+  if (!wkOnline) { errEl.textContent = 'Connexion impossible pour le moment. Vérifiez votre internet.'; errEl.style.display='block'; return; }
+  const p = allPros.find(x => x.telephone === phone);
+  if (!p) { errEl.textContent = 'Aucun compte trouvé avec ce numéro.'; errEl.style.display='block'; return; }
+  const hash = await wkHash(password);
+  if (!p.passwordHash || p.passwordHash !== hash) { errEl.textContent = 'Mot de passe incorrect.'; errEl.style.display='block'; return; }
+  myPro = p;
+  localStorage.setItem('wk_pro_id', p.id);
+  startApp();
 }
 function loadProPhoto(input, prefix){
   const file = input.files[0];
@@ -509,9 +521,15 @@ async function createNewPro(){
   const categorie = document.getElementById('np-categorie').value;
   const zone = document.getElementById('np-zone').value.trim();
   const telephone = document.getElementById('np-telephone').value.trim();
-  if(!nom || !metier || !zone || !telephone){ alert('Merci de remplir tous les champs.'); return; }
+  const password = document.getElementById('np-password').value;
+  const password2 = document.getElementById('np-password2').value;
+  if(!nom || !metier || !zone || !telephone || !password){ alert('Merci de remplir tous les champs.'); return; }
+  if(password.length < 8){ alert('Le mot de passe doit contenir au moins 8 caractères.'); return; }
+  if(password !== password2){ alert('Les deux mots de passe ne correspondent pas.'); return; }
+  if (allPros.find(x => x.telephone === telephone)) { alert('Un compte existe déjà avec ce numéro. Connectez-vous plutôt.'); return; }
+  const passwordHash = await wkHash(password);
   const p = {
-    id: Date.now(), nom, metier, categorie, zone, telephone,
+    id: Date.now(), nom, metier, categorie, zone, telephone, passwordHash,
     note: 0, certifie: false, experience: '', tarif: 'À définir',
     disponibilite: 'sched', statut: 'attente', missions: 0,
     photo: window._npPhotoData || null,
@@ -527,19 +545,16 @@ async function createNewPro(){
   alert('Inscription envoyée ! Votre profil sera visible dès validation par l’administrateur.');
   startApp();
 }
-function chooseWhoami(id){
-  myPro = allPros.find(p=>p.id===id);
-  localStorage.setItem('wk_pro_id', id);
-  startApp();
-}
 function switchAccount(){
   if(!confirm('Changer de compte professionnel sur cet appareil ?')) return;
   localStorage.removeItem('wk_pro_id');
   myPro = null;
   if (_wkPollTimer) { clearInterval(_wkPollTimer); _wkPollTimer=null; }
+  document.getElementById('login-phone').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').style.display = 'none';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-whoami').classList.add('active');
-  renderWhoami();
 }
 async function startApp(){
   document.getElementById('dash-hello').textContent = 'Bonjour, ' + (myPro.nom ? myPro.nom.split(' ')[0] : '');
@@ -815,10 +830,15 @@ async function saveProfile(){
   myPro.services = Array.from(document.querySelectorAll('#service-chips .chip.active')).map(el=>el.textContent);
   myPro.disponibilite = document.getElementById('sw-avail').classList.contains('on') ? 'now' : 'today';
   if (window._pfPhotoData) myPro.photo = window._pfPhotoData;
+  const newPassword = document.getElementById('pf-password').value;
+  if (newPassword) {
+    if (newPassword.length < 8) { alert('Le nouveau mot de passe doit contenir au moins 8 caractères.'); return; }
+    myPro.passwordHash = await wkHash(newPassword);
+  }
   document.getElementById('dash-hello').textContent = 'Bonjour, ' + myPro.nom.split(' ')[0];
   document.getElementById('dash-sub').textContent = myPro.metier + (myPro.zone ? ' · '+myPro.zone : '');
   if (wkOnline) {
-    try { await wkPut('professionnels', 'pro-' + myPro.id, myPro); alert('Profil mis à jour.'); }
+    try { await wkPut('professionnels', 'pro-' + myPro.id, myPro); document.getElementById('pf-password').value=''; alert('Profil mis à jour.'); }
     catch(e) { alert('Erreur d’envoi. Vérifiez votre connexion.'); }
   } else {
     alert('Profil mis à jour localement (hors connexion).');
