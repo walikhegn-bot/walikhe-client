@@ -609,8 +609,24 @@ function openProDrawer(id){
         ${!p.certifie ? `<button class="btn btn-primary" onclick="toggleCertified(${p.id})">Attribuer 🏅 Walikhé Certifié</button>` : ''}
       ` : `<button class="btn btn-success" onclick="setProStatus(${p.id},'actif')">Réactiver</button>`}
     </div>
+    <div class="dr-actions" style="margin-top:10px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="resetProPassword(${p.id})">🔑 Réinitialiser le mot de passe</button>
+    </div>
   `;
   openDrawer();
+}
+async function wkHash(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function resetProPassword(id){
+  const p = pros.find(x=>x.id===id); if(!p) return;
+  if(!confirm(`Générer un nouveau mot de passe temporaire pour ${p.nom} ?`)) return;
+  const tempPassword = Math.random().toString(36).slice(-8);
+  p.passwordHash = await wkHash(tempPassword);
+  if (wkOnline) { try { await wkPut('professionnels', 'pro-'+id, p); } catch(e){ console.log(e); } }
+  alert(`Nouveau mot de passe temporaire pour ${p.nom} :\n\n${tempPassword}\n\nCommunique-le lui directement (téléphone/message), puis conseille-lui d'en choisir un nouveau depuis son profil dès que possible.`);
 }
 async function setProStatus(id, statut){
   const p = pros.find(x=>x.id===id); if(!p) return;
