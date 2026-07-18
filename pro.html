@@ -560,17 +560,20 @@ async function startApp(){
   document.getElementById('dash-hello').textContent = 'Bonjour, ' + (myPro.nom ? myPro.nom.split(' ')[0] : '');
   document.getElementById('dash-sub').textContent = (myPro.metier||'') + (myPro.zone ? ' · '+myPro.zone : '');
   await loadMyRequests();
+  checkForNewRequests(); // amorce silencieuse, pas de notif pour ce qui existait déjà
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-dashboard').classList.add('active');
   renderNav('dashboard');
   renderDashboard();
   startPolling();
+  requestNotifPermission();
 }
 function startPolling(){
   if (_wkPollTimer) clearInterval(_wkPollTimer);
   _wkPollTimer = setInterval(async ()=>{
     if (!wkOnline || !myPro) return;
     await loadMyRequests();
+    checkForNewRequests();
     const active = document.querySelector('.screen.active')?.id;
     if (active==='screen-dashboard') renderDashboard();
     if (active==='screen-requests') renderRequests();
@@ -584,6 +587,33 @@ async function loadMyRequests(){
     const all = await wkGetAll('demandes');
     requests = all.filter(d => d.proId === myPro.id).sort((a,b)=>(b.id||0)-(a.id||0));
   } catch(e) { console.log('Erreur chargement des demandes:', e); }
+}
+
+/* ============ NOTIFICATIONS ============ */
+let _knownNewIds = null;
+async function requestNotifPermission(){
+  if ('Notification' in window && Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch(e) {}
+  }
+}
+function notifyPro(title, body){
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, {body, icon: 'icon-192.png', tag: 'walikhe-'+Date.now()});
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch(e) { console.log('Notification error:', e); }
+}
+function checkForNewRequests(){
+  const currentNewIds = new Set(requests.filter(r=>r.statut===0).map(r=>r.id));
+  if (_knownNewIds !== null) {
+    for (const id of currentNewIds) {
+      if (!_knownNewIds.has(id)) {
+        const r = requests.find(x=>x.id===id);
+        if (r) notifyPro('🆕 Nouvelle demande !', `${r.clientNom} — ${r.service}`);
+      }
+    }
+  }
+  _knownNewIds = currentNewIds;
 }
 
 /* ============ NAVIGATION ============ */
