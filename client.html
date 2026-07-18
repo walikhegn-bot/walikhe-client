@@ -574,10 +574,52 @@ async function wkInit(){
     }
   } catch(e) { categories = DEMO_CATEGORIES.slice(); }
 
-  if (localStorage.getItem('wk_client_phone')) { await loadMyBookings(); }
+  if (localStorage.getItem('wk_client_phone')) {
+    await loadMyBookings();
+    seedKnownStatuses();
+    startGlobalPolling();
+    requestNotifPermission();
+  }
   const active = document.querySelector('.screen.active');
   if (active && active.id === 'screen-home') renderHome();
   if (active && active.id === 'screen-requests') renderRequestsList();
+}
+
+/* ============ NOTIFICATIONS ============ */
+let _clientPollTimer = null;
+let _knownStatuses = {};
+async function requestNotifPermission(){
+  if ('Notification' in window && Notification.permission === 'default') {
+    try { await Notification.requestPermission(); } catch(e) {}
+  }
+}
+function notifyClient(title, body){
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, {body, icon: 'icon-192.png', tag: 'walikhe-'+Date.now()});
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch(e) { console.log('Notification error:', e); }
+}
+function seedKnownStatuses(){
+  bookings.forEach(b => { _knownStatuses[b.id] = b.statut; });
+}
+function checkForStatusChanges(){
+  const labels = {1:'🔵 Accepté', 2:'🛠 Intervention en cours', 3:'✅ Terminé', 4:'⛔ Refusé'};
+  bookings.forEach(b => {
+    const prev = _knownStatuses[b.id];
+    if (prev !== undefined && prev !== b.statut && labels[b.statut]) {
+      notifyClient(labels[b.statut], `${b.proNom} — ${b.service}`);
+    }
+    _knownStatuses[b.id] = b.statut;
+  });
+}
+function startGlobalPolling(){
+  if (_clientPollTimer) clearInterval(_clientPollTimer);
+  _clientPollTimer = setInterval(async ()=>{
+    if (!wkOnline || !localStorage.getItem('wk_client_phone')) { clearInterval(_clientPollTimer); _clientPollTimer=null; return; }
+    await loadMyBookings();
+    checkForStatusChanges();
+  }, 20000);
 }
 
 /* ============ NAVIGATION ============ */
@@ -815,6 +857,9 @@ async function submitAuth(){
     localStorage.setItem('wk_client_phone', phone);
     localStorage.setItem('wk_client_name', name);
     await loadMyBookings();
+    seedKnownStatuses();
+    startGlobalPolling();
+    requestNotifPermission();
     go('home');
     return;
   }
@@ -837,6 +882,9 @@ async function submitAuth(){
     localStorage.setItem('wk_client_phone', phone);
     localStorage.setItem('wk_client_name', found.nom || '');
     await loadMyBookings();
+    seedKnownStatuses();
+    startGlobalPolling();
+    requestNotifPermission();
     go('home');
   } catch(e) {
     errEl.textContent = 'Erreur de connexion, réessayez.';
