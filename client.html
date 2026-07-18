@@ -274,6 +274,8 @@ body{
     <div class="content">
       <div class="field"><label>Votre téléphone</label><input type="tel" id="auth-phone" placeholder="+224 6XX XX XX XX"></div>
       <div class="field" id="auth-name-field"><label>Votre nom</label><input type="text" id="auth-name" placeholder="Nom complet"></div>
+      <div class="field"><label id="auth-password-label">Mot de passe</label><input type="password" id="auth-password" placeholder="••••••••"></div>
+      <div class="field" id="auth-password2-field"><label>Confirmer le mot de passe</label><input type="password" id="auth-password2" placeholder="••••••••"></div>
       <button class="btn btn-primary btn-block" id="auth-submit-btn" onclick="submitAuth()">Continuer</button>
       <p id="auth-hint" style="color:var(--muted); font-size:12px; text-align:center; margin-top:14px;"></p>
       <p style="text-align:center; margin-top:10px; font-size:12.5px;">
@@ -494,12 +496,13 @@ const DEMO_CATEGORIES = [
 
 // Profils de démonstration : utilisés pour amorcer Firebase la toute première fois,
 // et comme repli si la connexion Internet/Firebase est indisponible.
+const DEMO_PWD_HASH = '830e80bc095f3509fcba1af2109858e53345eb93ccdb0357eaceef5968d44e2b'; // "walikhe2026"
 const DEMO_PROS = [
-  {id:1, nom:'Ibrahima Sow', metier:'Électricien', categorie:'elec', note:4.8, certifie:true, experience:'6 ans', tarif:'150 000 – 300 000 GNF', zone:'Madina, Matam', disponibilite:'now', statut:'actif', missions:47, telephone:'+224 622 00 00 01'},
-  {id:2, nom:'Ousmane Diallo', metier:'Plombier', categorie:'plomb', note:4.6, certifie:true, experience:'9 ans', tarif:'100 000 – 250 000 GNF', zone:'Sonfonia, Ratoma', disponibilite:'today', statut:'actif', missions:63, telephone:'+224 622 00 00 02'},
-  {id:3, nom:'Mohamed Camara', metier:'Mécanicien auto', categorie:'meca', note:4.9, certifie:true, experience:'12 ans', tarif:'Devis sur place', zone:'Kaloum', disponibilite:'now', statut:'actif', missions:81, telephone:'+224 622 00 00 03'},
-  {id:4, nom:'Aïssatou Barry', metier:'Technicienne informatique', categorie:'info', note:4.7, certifie:false, experience:'4 ans', tarif:'80 000 – 200 000 GNF', zone:'Dixinn', disponibilite:'sched', statut:'actif', missions:22, telephone:'+224 622 00 00 04'},
-  {id:5, nom:'Fodé Keita', metier:'Maçon', categorie:'bat', note:4.5, certifie:true, experience:'15 ans', tarif:'Devis sur place', zone:'Matoto', disponibilite:'today', statut:'actif', missions:39, telephone:'+224 622 00 00 05'},
+  {id:1, nom:'Ibrahima Sow', metier:'Électricien', categorie:'elec', note:4.8, certifie:true, experience:'6 ans', tarif:'150 000 – 300 000 GNF', zone:'Madina, Matam', disponibilite:'now', statut:'actif', missions:47, telephone:'+224 622 00 00 01', passwordHash:DEMO_PWD_HASH},
+  {id:2, nom:'Ousmane Diallo', metier:'Plombier', categorie:'plomb', note:4.6, certifie:true, experience:'9 ans', tarif:'100 000 – 250 000 GNF', zone:'Sonfonia, Ratoma', disponibilite:'today', statut:'actif', missions:63, telephone:'+224 622 00 00 02', passwordHash:DEMO_PWD_HASH},
+  {id:3, nom:'Mohamed Camara', metier:'Mécanicien auto', categorie:'meca', note:4.9, certifie:true, experience:'12 ans', tarif:'Devis sur place', zone:'Kaloum', disponibilite:'now', statut:'actif', missions:81, telephone:'+224 622 00 00 03', passwordHash:DEMO_PWD_HASH},
+  {id:4, nom:'Aïssatou Barry', metier:'Technicienne informatique', categorie:'info', note:4.7, certifie:false, experience:'4 ans', tarif:'80 000 – 200 000 GNF', zone:'Dixinn', disponibilite:'sched', statut:'actif', missions:22, telephone:'+224 622 00 00 04', passwordHash:DEMO_PWD_HASH},
+  {id:5, nom:'Fodé Keita', metier:'Maçon', categorie:'bat', note:4.5, certifie:true, experience:'15 ans', tarif:'Devis sur place', zone:'Matoto', disponibilite:'today', statut:'actif', missions:39, telephone:'+224 622 00 00 05', passwordHash:DEMO_PWD_HASH},
 ];
 const DEMO_AVIS = [
   {id:1, proId:1, proNom:'Ibrahima Sow', clientNom:'Fatoumata D.', note:5, texte:'Rapide et très professionnel.', statut:'publie'},
@@ -767,58 +770,76 @@ let _authMode = 'login';
 function openAuth(mode){
   _authMode = mode;
   document.getElementById('auth-title').textContent = mode==='login' ? 'Se connecter' : 'Créer un compte';
-  document.getElementById('auth-submit-btn').textContent = mode==='login' ? 'Continuer' : 'Créer mon compte';
+  document.getElementById('auth-submit-btn').textContent = mode==='login' ? 'Se connecter' : 'Créer mon compte';
   document.getElementById('auth-name-field').style.display = mode==='register' ? 'block' : 'none';
+  document.getElementById('auth-password2-field').style.display = mode==='register' ? 'block' : 'none';
+  document.getElementById('auth-password-label').textContent = mode==='register' ? 'Créer un mot de passe' : 'Mot de passe';
   document.getElementById('auth-switch').textContent = mode==='register' ? 'Déjà un compte ? Se connecter' : 'Pas encore de compte ? En créer un';
   document.getElementById('auth-phone').value = localStorage.getItem('wk_client_phone') || '';
   document.getElementById('auth-name').value = localStorage.getItem('wk_client_name') || '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-password2').value = '';
   document.getElementById('auth-hint').textContent = '';
   go('auth');
 }
+async function wkHash(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
 async function submitAuth(){
   const phone = document.getElementById('auth-phone').value.trim();
-  if (!phone) { alert('Merci de renseigner votre numéro de téléphone.'); return; }
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-hint');
+  errEl.innerHTML = '';
+  if (!phone || !password) { errEl.textContent = 'Merci de renseigner votre téléphone et votre mot de passe.'; return; }
 
   if (_authMode === 'register') {
     const name = document.getElementById('auth-name').value.trim();
-    if (!name) { alert('Merci de renseigner votre nom.'); return; }
+    const password2 = document.getElementById('auth-password2').value;
+    if (!name) { errEl.textContent = 'Merci de renseigner votre nom.'; return; }
+    if (password.length < 8) { errEl.textContent = 'Le mot de passe doit contenir au moins 8 caractères.'; return; }
+    if (password !== password2) { errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+    if (!wkOnline) { errEl.textContent = 'Connexion impossible pour le moment. Vérifiez votre internet.'; return; }
+    const uid = phone.replace(/[^0-9+]/g, '');
+    try {
+      const existing = await wkGetAll('utilisateurs');
+      const already = existing.find(u => u._id === uid || u.telephone === phone);
+      if (already && already.passwordHash) {
+        errEl.innerHTML = 'Un compte existe déjà avec ce numéro. <span style="color:var(--amber-dark); font-weight:700; cursor:pointer;" onclick="openAuth(\'login\')">Se connecter</span>';
+        return;
+      }
+      const passwordHash = await wkHash(password);
+      await wkPut('utilisateurs', uid, {telephone: phone, nom: name, passwordHash, statut: (already && already.statut) || 'actif', createdAt: (already && already.createdAt) || new Date().toISOString()});
+    } catch(e) { errEl.textContent = 'Erreur de connexion, réessayez.'; return; }
     localStorage.setItem('wk_client_phone', phone);
     localStorage.setItem('wk_client_name', name);
-    if (wkOnline) {
-      try {
-        const uid = phone.replace(/[^0-9+]/g, '');
-        await wkPut('utilisateurs', uid, {telephone: phone, nom: name, statut: 'actif', createdAt: new Date().toISOString()});
-      } catch(e) { console.log('Erreur création compte:', e); }
-    }
     await loadMyBookings();
     go('home');
     return;
   }
 
-  // Mode connexion : on cherche un compte existant avec ce numéro
-  if (!wkOnline) {
-    localStorage.setItem('wk_client_phone', phone);
-    await loadMyBookings();
-    go('home');
-    return;
-  }
+  // Mode connexion
+  if (!wkOnline) { errEl.textContent = 'Connexion impossible pour le moment. Vérifiez votre internet.'; return; }
   try {
     const users = await wkGetAll('utilisateurs');
     const uid = phone.replace(/[^0-9+]/g, '');
     const found = users.find(u => u._id === uid || u.telephone === phone);
-    if (found) {
-      localStorage.setItem('wk_client_phone', phone);
-      localStorage.setItem('wk_client_name', found.nom || '');
-      await loadMyBookings();
-      go('home');
-    } else {
-      document.getElementById('auth-hint').innerHTML = 'Aucun compte trouvé avec ce numéro. <span style="color:var(--amber-dark); font-weight:700; cursor:pointer;" onclick="openAuth(\'register\')">Créer un compte</span>';
+    if (!found) {
+      errEl.innerHTML = 'Aucun compte trouvé avec ce numéro. <span style="color:var(--amber-dark); font-weight:700; cursor:pointer;" onclick="openAuth(\'register\')">Créer un compte</span>';
+      return;
     }
-  } catch(e) {
-    console.log('Erreur connexion:', e);
+    const hash = await wkHash(password);
+    if (!found.passwordHash || found.passwordHash !== hash) {
+      errEl.textContent = 'Mot de passe incorrect.';
+      return;
+    }
     localStorage.setItem('wk_client_phone', phone);
+    localStorage.setItem('wk_client_name', found.nom || '');
     await loadMyBookings();
     go('home');
+  } catch(e) {
+    errEl.textContent = 'Erreur de connexion, réessayez.';
   }
 }
 
@@ -836,9 +857,8 @@ async function renderRequests(){
     document.getElementById('requests-list').innerHTML = `
       <div class="empty">
         📋<br><br>
-        Entrez votre numéro pour retrouver vos demandes.<br><br>
-        <input type="tel" id="my-phone-input" placeholder="+224 6XX XX XX XX" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;margin-bottom:10px;text-align:center;font-family:inherit;font-size:14px;">
-        <button class="btn btn-primary" onclick="setMyPhone()">Valider</button>
+        Connectez-vous pour retrouver vos demandes.<br><br>
+        <button class="btn btn-primary" onclick="openAuth('login')">Se connecter</button>
       </div>`;
     return;
   }
@@ -856,12 +876,6 @@ function renderRequestsList(){
         <div style="margin-top:8px;"><span class="avail-tag ${statusTagClass(b.statut)}">${statusLabel(b.statut)}</span></div>
       </div>
     </div>`).join('') : '<div class="empty">📋<br><br>Vous n’avez pas encore de demande.<br>Recherchez un professionnel pour commencer.</div>';
-}
-function setMyPhone(){
-  const v = document.getElementById('my-phone-input').value.trim();
-  if(!v){ return; }
-  localStorage.setItem('wk_client_phone', v);
-  renderRequests();
 }
 function statusLabel(s){ return ['🟡 En attente','🔵 Accepté','🟠 En cours','🟢 Terminé','⛔ Refusé'][s] || '🟡 En attente'; }
 function statusTagClass(s){ return ['avail-sched','avail-today','avail-today','avail-now','avail-sched'][s] || 'avail-sched'; }
